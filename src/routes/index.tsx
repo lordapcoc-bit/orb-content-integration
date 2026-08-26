@@ -3,6 +3,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ClientOnly } from "@tanstack/react-router";
 import GateIntro from "@/components/office/GateIntro";
 import SectionOverlay from "@/components/office/SectionOverlay";
+import ScenePoster from "@/components/office/ScenePoster";
+import { usePrefersReducedMotion, useLowPowerDevice } from "@/hooks/useMotionPreference";
 import { SECTIONS, scrollState } from "@/lib/officePath";
 
 const OfficeScene = lazy(() => import("@/components/office/OfficeScene"));
@@ -30,6 +32,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const reducedMotion = usePrefersReducedMotion();
+  const lowPower = useLowPowerDevice();
+  const staticMode = reducedMotion || lowPower;
+
   const [gateDone, setGateDone] = useState(false);
   const [emergeStart, setEmergeStart] = useState<number | null>(null);
   const [scrollUnlocked, setScrollUnlocked] = useState(false);
@@ -50,13 +56,32 @@ function Index() {
     setShowCue(true);
   }, []);
 
+  // fail-safe: never leave the page locked if the orb's emerge callback is
+  // late (slow GPU, throttled tab, WebGL context still warming up)
+  useEffect(() => {
+    if (emergeStart === null || scrollUnlocked) return;
+    const t = window.setTimeout(handleEmerged, 2000);
+    return () => window.clearTimeout(t);
+  }, [emergeStart, scrollUnlocked, handleEmerged]);
+
+  // static mode: no gate, no scroll lock, no scrub — plain page scroll
+  useEffect(() => {
+    if (!staticMode) return;
+    unlockedRef.current = true;
+    setGateDone(true);
+    setScrollUnlocked(false);
+    setShowCue(false);
+    document.body.style.overflow = "";
+  }, [staticMode]);
+
   // lock the page until the guide emerges
   useEffect(() => {
+    if (staticMode) return;
     document.body.style.overflow = scrollUnlocked ? "" : "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [scrollUnlocked]);
+  }, [scrollUnlocked, staticMode]);
 
   // hide the cue once the visitor actually scrolls
   useEffect(() => {
@@ -70,7 +95,7 @@ function Index() {
 
   // one page-spanning ScrollTrigger, scrub: 1
   useEffect(() => {
-    if (!scrollUnlocked) return;
+    if (staticMode || !scrollUnlocked) return;
     let cleanup = () => {};
     let cancelled = false;
 
@@ -111,21 +136,29 @@ function Index() {
       cancelled = true;
       cleanup();
     };
-  }, [scrollUnlocked]);
+  }, [scrollUnlocked, staticMode]);
 
   return (
     <main className="relative bg-[#0b0a09] text-[#f6efe3]">
-      {/* 3D interior, fixed behind the content */}
-      <div className="fixed inset-0 z-0">
-        <ClientOnly fallback={null}>
-          <Suspense fallback={null}>
-            <OfficeScene
-              emergeStart={emergeStart}
-              onGuideEmerged={handleEmerged}
-              scrollActive={scrollUnlocked}
-            />
-          </Suspense>
-        </ClientOnly>
+      {/* 3D interior (or its static poster), fixed behind the content */}
+      <div
+        className="fixed inset-0 z-0"
+        role="img"
+        aria-label="Animated 3D view of the studio interior, guided by a glowing amber light that moves from reception through the cabins, workstations, meeting room and lounge. All of this content is also available as text on this page."
+      >
+        {staticMode ? (
+          <ScenePoster reason={reducedMotion ? "reduced-motion" : "low-power"} />
+        ) : (
+          <ClientOnly fallback={null}>
+            <Suspense fallback={null}>
+              <OfficeScene
+                emergeStart={emergeStart}
+                onGuideEmerged={handleEmerged}
+                scrollActive={scrollUnlocked}
+              />
+            </Suspense>
+          </ClientOnly>
+        )}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -135,23 +168,26 @@ function Index() {
         />
       </div>
 
-      {!gateDone && <GateIntro onFinish={handleGateFinish} />}
+      {!staticMode && !gateDone && <GateIntro onFinish={handleGateFinish} />}
 
       {/* scroll cue */}
-      <div
-        className="pointer-events-none fixed bottom-8 left-1/2 z-30 -translate-x-1/2 text-center"
-        style={{
-          opacity: showCue ? 1 : 0,
-          transition: "opacity 800ms ease",
-        }}
-      >
-        <span className="text-[0.6rem] uppercase tracking-[0.45em] text-[#f0a93a]">
-          Scroll to explore
-        </span>
-        <div className="mx-auto mt-3 h-10 w-[1px] overflow-hidden bg-[#f0a93a]/25">
-          <div className="h-4 w-full animate-[cue_1.8s_ease-in-out_infinite] bg-[#f0a93a]" />
+      {!staticMode && (
+        <div
+          className="pointer-events-none fixed bottom-8 left-1/2 z-30 -translate-x-1/2 text-center"
+          aria-hidden="true"
+          style={{
+            opacity: showCue ? 1 : 0,
+            transition: "opacity 800ms ease",
+          }}
+        >
+          <span className="text-[0.6rem] uppercase tracking-[0.45em] text-[#f0a93a]">
+            Scroll to explore
+          </span>
+          <div className="mx-auto mt-3 h-10 w-[1px] overflow-hidden bg-[#f0a93a]/25">
+            <div className="h-4 w-full animate-[cue_1.8s_ease-in-out_infinite] bg-[#f0a93a]" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* existing section content, as an overlay on top of the scene */}
       <div ref={scrollerRef} className="relative z-10">
@@ -161,9 +197,11 @@ function Index() {
             section={section}
             index={i}
             total={SECTIONS.length}
+            reducedMotion={reducedMotion}
           />
         ))}
       </div>
+
     </main>
   );
 }

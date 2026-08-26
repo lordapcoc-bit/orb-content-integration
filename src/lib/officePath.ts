@@ -104,8 +104,8 @@ export function progressToU(progress: number): number {
   const steps = SECTIONS.length - 1;
   const seg = Math.min(Math.floor(p * steps), steps - 1);
   const local = p * steps - seg;
-  const from = SECTIONS[seg].u;
-  const to = SECTIONS[seg + 1].u;
+  const from = SECTIONS[seg]?.u ?? 0;
+  const to = SECTIONS[seg + 1]?.u ?? 1;
   const travel = Math.min(local / (1 - HOLD), 1);
   const eased = travel * travel * (3 - 2 * travel);
   return from + (to - from) * eased;

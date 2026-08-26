@@ -9,10 +9,12 @@ export default function SectionOverlay({
   section,
   index,
   total,
+  reducedMotion = false,
 }: {
   section: OfficeSection;
   index: number;
   total: number;
+  reducedMotion?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(index === 0);
@@ -34,15 +36,20 @@ export default function SectionOverlay({
     <section
       id={section.id}
       ref={ref}
-      className="flex h-screen w-full items-center px-6 sm:px-12 lg:px-20"
+      aria-labelledby={`${section.id}-title`}
+      className="flex min-h-dvh w-full items-center px-6 py-20 sm:px-12 lg:px-20"
       style={{ justifyContent: alignLeft ? "flex-start" : "flex-end" }}
     >
       <div
         className="max-w-md rounded-2xl border border-[#f0a93a]/20 bg-[#0b0a09]/70 p-7 backdrop-blur-md sm:p-9"
         style={{
           opacity: visible ? 1 : 0,
-          transform: `translate3d(0, ${visible ? "0px" : "34px"}, 0)`,
-          transition: "opacity 700ms ease, transform 900ms cubic-bezier(0.22,1,0.36,1)",
+          transform: reducedMotion
+            ? undefined
+            : `translate3d(0, ${visible ? "0px" : "34px"}, 0)`,
+          transition: reducedMotion
+            ? "opacity 300ms ease"
+            : "opacity 700ms ease, transform 900ms cubic-bezier(0.22,1,0.36,1)",
           boxShadow: "0 30px 80px -40px rgba(240,169,58,0.45)",
         }}
       >
@@ -51,11 +58,17 @@ export default function SectionOverlay({
           {section.eyebrow}
         </p>
         {index === 0 ? (
-          <h1 className="text-3xl font-semibold leading-tight text-[#f6efe3] sm:text-4xl">
+          <h1
+            id={`${section.id}-title`}
+            className="text-3xl font-semibold leading-tight text-[#f6efe3] sm:text-4xl"
+          >
             {section.title}
           </h1>
         ) : (
-          <h2 className="text-2xl font-semibold leading-tight text-[#f6efe3] sm:text-3xl">
+          <h2
+            id={`${section.id}-title`}
+            className="text-2xl font-semibold leading-tight text-[#f6efe3] sm:text-3xl"
+          >
             {section.title}
           </h2>
         )}
