@@ -3,6 +3,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ClientOnly } from "@tanstack/react-router";
 import GateIntro from "@/components/office/GateIntro";
 import SectionOverlay from "@/components/office/SectionOverlay";
+import ScenePoster from "@/components/office/ScenePoster";
+import { usePrefersReducedMotion, useLowPowerDevice } from "@/hooks/useMotionPreference";
 import { SECTIONS, scrollState } from "@/lib/officePath";
 
 const OfficeScene = lazy(() => import("@/components/office/OfficeScene"));
