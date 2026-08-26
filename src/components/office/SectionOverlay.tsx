@@ -58,11 +58,17 @@ export default function SectionOverlay({
           {section.eyebrow}
         </p>
         {index === 0 ? (
-          <h1 className="text-3xl font-semibold leading-tight text-[#f6efe3] sm:text-4xl">
+          <h1
+            id={`${section.id}-title`}
+            className="text-3xl font-semibold leading-tight text-[#f6efe3] sm:text-4xl"
+          >
             {section.title}
           </h1>
         ) : (
-          <h2 className="text-2xl font-semibold leading-tight text-[#f6efe3] sm:text-3xl">
+          <h2
+            id={`${section.id}-title`}
+            className="text-2xl font-semibold leading-tight text-[#f6efe3] sm:text-3xl"
+          >
             {section.title}
           </h2>
         )}
