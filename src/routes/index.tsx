@@ -32,6 +32,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const reducedMotion = usePrefersReducedMotion();
+  const lowPower = useLowPowerDevice();
+  const staticMode = reducedMotion || lowPower;
+
   const [gateDone, setGateDone] = useState(false);
   const [emergeStart, setEmergeStart] = useState<number | null>(null);
   const [scrollUnlocked, setScrollUnlocked] = useState(false);
@@ -52,13 +56,24 @@ function Index() {
     setShowCue(true);
   }, []);
 
+  // static mode: no gate, no scroll lock, no scrub — plain page scroll
+  useEffect(() => {
+    if (!staticMode) return;
+    unlockedRef.current = true;
+    setGateDone(true);
+    setScrollUnlocked(false);
+    setShowCue(false);
+    document.body.style.overflow = "";
+  }, [staticMode]);
+
   // lock the page until the guide emerges
   useEffect(() => {
+    if (staticMode) return;
     document.body.style.overflow = scrollUnlocked ? "" : "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [scrollUnlocked]);
+  }, [scrollUnlocked, staticMode]);
 
   // hide the cue once the visitor actually scrolls
   useEffect(() => {
@@ -72,7 +87,7 @@ function Index() {
 
   // one page-spanning ScrollTrigger, scrub: 1
   useEffect(() => {
-    if (!scrollUnlocked) return;
+    if (staticMode || !scrollUnlocked) return;
     let cleanup = () => {};
     let cancelled = false;
 
