@@ -9,10 +9,12 @@ export default function SectionOverlay({
   section,
   index,
   total,
+  reducedMotion = false,
 }: {
   section: OfficeSection;
   index: number;
   total: number;
+  reducedMotion?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(index === 0);
