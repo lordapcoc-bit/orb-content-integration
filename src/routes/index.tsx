@@ -56,6 +56,14 @@ function Index() {
     setShowCue(true);
   }, []);
 
+  // fail-safe: never leave the page locked if the orb's emerge callback is
+  // late (slow GPU, throttled tab, WebGL context still warming up)
+  useEffect(() => {
+    if (emergeStart === null || scrollUnlocked) return;
+    const t = window.setTimeout(handleEmerged, 2000);
+    return () => window.clearTimeout(t);
+  }, [emergeStart, scrollUnlocked, handleEmerged]);
+
   // static mode: no gate, no scroll lock, no scrub — plain page scroll
   useEffect(() => {
     if (!staticMode) return;
